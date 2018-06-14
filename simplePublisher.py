@@ -11,15 +11,14 @@ from datetime import datetime
 class MyPublisher:
     def __init__(self, clientID):
         self.clientID = clientID
-
         # create an instance of paho.mqtt.client
         self._paho_mqtt = PahoMQTT.Client(self.clientID, False) 
         # register the callback
         self._paho_mqtt.on_connect = self.myOnConnect
 
     def start (self):
-        #manage connection to broker
-        self._paho_mqtt.connect('broker.hivemq.com', port=1883)
+        #manage connection to broker broker.hivemq.com
+        self._paho_mqtt.connect('127.0.0.1', port=1883)
         print "connected"
         self._paho_mqtt.loop_start()
 

@@ -37,6 +37,7 @@ if __name__ == '__main__':
     
     X=mat[:,1:4] # Month,Temperature,Humidity,RainQuantity
     B=mat[:,-1]/1000 # Leaf Wetness
+    B=B[B>0]
     # Create linear regression object
     
     regr = neural_network.MLPRegressor(max_iter=20000)
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     c_5=np.mean(X[B==5],axis=0)
     '''
     
-    lim= int(np.shape(B)[0]*0.9)
+    lim= int(np.shape(B)[0]*0.7)
     X_train=X[:lim]
     X_test=X[lim:]
     mean_X=np.mean(X_train, axis=0)

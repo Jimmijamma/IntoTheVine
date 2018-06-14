@@ -32,7 +32,6 @@ class WeatherForecast(object):
         
     def five_days_forecast(self):
         self.measurement_list=[]
-        
         full_api_url='http://api.openweathermap.org/data/2.5/forecast?lat='+self.lat+'&lon='+self.lon+'&APPID='+self.APPID
         url = urllib.urlopen(full_api_url)
         output = url.read().decode('utf-8')

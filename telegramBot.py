@@ -10,6 +10,7 @@ import json
 import paho.mqtt.client as PahoMQTT
 import time
 
+
 MIO_ID=578155659
 
 def checklist(chat_id):
@@ -47,7 +48,7 @@ class TelegramBot(object):
         # register the callback
         self._paho_mqtt.on_connect = self.myOnConnect
         self._paho_mqtt.on_message = self.myOnMessageReceived
-        self.topic = 'notify'
+        self.topic = 'user/#'
         
         start_handler = CommandHandler('start', self.msg_start)
         self.dispatcher.add_handler(start_handler)
@@ -62,7 +63,7 @@ class TelegramBot(object):
        
     def mqtt_start (self):
         #manage connection to broker
-        self._paho_mqtt.connect('broker.hivemq.com', 1883)
+        self._paho_mqtt.connect('127.0.0.1', 1883)
         self._paho_mqtt.loop_start()
         # subscribe for a topic
         self._paho_mqtt.subscribe(self.topic, 2)
@@ -97,11 +98,31 @@ class TelegramBot(object):
 
     def myOnMessageReceived (self, paho_mqtt , userdata, msg):
         # A new message is received
-        chat_id= msg.payload
-        def callback_now(bot,job,chat_id=chat_id,text='ALERT!'):
-            bot.send_message(chat_id=chat_id, text=text)
+        if msg.topic.split('/')[-1]=='weather':
+            chat_id,message=self.parseWeather(msg.payload)
+        def callback_now(bot,job,chat_id=chat_id,text=message):
+            bot.send_message(chat_id=chat_id, text=text, parse_mode='HTML')
         self.job_queue.run_once(callback_now, when=0)
-
+        
+        
+    def parseWeather(self, payload):
+        dict_s = payload
+        data=json.loads(dict_s)
+        chat_id=data['user']
+        system=data['system']
+        station=data['station']
+        temp=data['temp']
+        humidity=data['humidity']
+        rain=data['rain']
+        snow=data['snow']
+        clouds=data['clouds']
+        message="Weather status at <b>station '%s'</b> of your <b>system '%s'</b>:\n"%(station,system)
+        message+='> temperature = <b>%.2f C</b>\n' %temp
+        message+='> humidity = <b>%d %%</b>\n' %humidity
+        message+='> rain = <b>%d mm/3h</b>\n' %rain
+        message+='> snow = <b>%d mm/3h</b>\n' %snow
+        message+='> cloudiness = <b>%d %%</b>\n' %temp
+        return chat_id,message
 
 
 
@@ -110,6 +131,8 @@ if __name__ == '__main__':
     botty=TelegramBot('jimmijamma')
     botty.start_polling()
     botty.mqtt_start()
+    
+    
     
     '''
     jf=open('chatIDs.JSON','w')
