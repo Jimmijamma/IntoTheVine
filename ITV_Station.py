@@ -22,7 +22,8 @@ class ITVStation(object):
         self.clientID = 'ITVStation'+'-'+self.system.user.id+'-'+self.system.id+'-'+self.id
         self._paho_mqtt = PahoMQTT.Client(self.clientID, False) 
         self._paho_mqtt.on_connect = self.myOnConnect
-        self.topic='user/'+self.system.user.id+'/'+self.system.id+'/'+self.id+'/weather'
+        self.topic='station'
+        self.status=0
         
     def mqtt_start (self):
         #manage connection to broker
@@ -42,6 +43,11 @@ class ITVStation(object):
         
     def simulateSensors(self):
         temp,humidity,rain,snow,clouds=self.parseWeatherJSON()
+        thingspeak_url='https://api.thingspeak.com/update?api_key=OMNCGQBADQGJYUOQ'
+        thingspeak_url+='&field1='+str(temp)
+        thingspeak_url+='&field2='+str(humidity)
+        thingspeak_url+='&field3='+str(snow+rain)
+        urllib.urlopen(thingspeak_url)
         data={}
         data['user']=self.system.user.id
         data['system']=self.system.id

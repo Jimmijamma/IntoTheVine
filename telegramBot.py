@@ -48,7 +48,7 @@ class TelegramBot(object):
         # register the callback
         self._paho_mqtt.on_connect = self.myOnConnect
         self._paho_mqtt.on_message = self.myOnMessageReceived
-        self.topic = 'user/#'
+        self.topic = '#'
         
         start_handler = CommandHandler('start', self.msg_start)
         self.dispatcher.add_handler(start_handler)
@@ -98,8 +98,12 @@ class TelegramBot(object):
 
     def myOnMessageReceived (self, paho_mqtt , userdata, msg):
         # A new message is received
-        if msg.topic.split('/')[-1]=='weather':
+        if msg.topic=='station':
             chat_id,message=self.parseWeather(msg.payload)
+        elif msg.topic=='alert/weather':
+            chat_id,message=self.parseAlertWeather(msg.payload)
+        elif msg.topic=='alert/forecast':
+            chat_id,message=self.parseAlertForecast(msg.payload)
         def callback_now(bot,job,chat_id=chat_id,text=message):
             bot.send_message(chat_id=chat_id, text=text, parse_mode='HTML')
         self.job_queue.run_once(callback_now, when=0)
@@ -122,6 +126,35 @@ class TelegramBot(object):
         message+='> rain = <b>%d mm/3h</b>\n' %rain
         message+='> snow = <b>%d mm/3h</b>\n' %snow
         message+='> cloudiness = <b>%d %%</b>\n' %temp
+        return chat_id,message
+    
+    def parseAlertWeather(self, payload):
+        dict_s = payload
+        data=json.loads(dict_s)
+        chat_id=data['user']
+        system=data['system']
+        station=data['station']
+        risk=data['risk']
+        if risk==1:
+            message="ALERT! The situation at station %s of your system %s is worrying.\n" %(station,system)
+            message+="You'd better administrate the treatment."
+        elif risk==2:
+            message="ALERT! The situation at station %s of your system %s is CRITIC.\n"%(station,system)
+            message+="ABSOLUTELY administrate the treatment."
+        return chat_id,message
+    
+    def parseAlertForecast(self, payload):
+        dict_s = payload
+        data=json.loads(dict_s)
+        chat_id=data['user']
+        system=data['system']
+        risk=data['risk']
+        if risk==1:
+            message="ALERT! The forecast for your system %s is worrying.\n" %system
+            message+="You'd better administrate the treatment."
+        elif risk==2:
+            message="ALERT! The forecast for your system %s is CRITIC.\n" %system
+            message+="ABSOLUTELY administrate the treatment."
         return chat_id,message
 
 
