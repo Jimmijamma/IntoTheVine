@@ -7,8 +7,8 @@ Created on 19 mag 2018
 from telegram.ext import Updater,CommandHandler,Filters,MessageHandler
 import logging
 import json
-import paho.mqtt.client as PahoMQTT
 import time
+from MQTT_classes import Subscriber
 
 
 MIO_ID=578155659
@@ -27,29 +27,29 @@ def checklist(chat_id):
     else:
         return "Your bot is already activated"
         
-class TelegramBot(object):
+        
+class ITV_TelegramBot(Subscriber):
     '''
     Class for sending notifications using Telegram
     '''
     
-    def __init__(self, clientID):
+    def __init__(self):
         
         # TelegramBot attributes
         self.token='610146619:AAFydsAw1I2QTCRI2mHzSEkifekuI3VM5sU'
         self.updater=Updater(token=self.token)
         self.dispatcher = self.updater.dispatcher
+        
         # for managing errors
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
         self.job_queue=self.updater.job_queue
         
-        # MQTT attributes
-        self.clientID = clientID
-        self._paho_mqtt = PahoMQTT.Client(clientID, False)
-        # register the callback
-        self._paho_mqtt.on_connect = self.myOnConnect
-        self._paho_mqtt.on_message = self.myOnMessageReceived
-        self.topic = '#'
+        # MQTT override
+        clientID='ITV_TelegramBot'
+        sub_topic='alert/#'
+        super(ITV_TelegramBot,self).__init__(clientID=clientID,sub_topic=sub_topic)
         
+        # Message handlers
         start_handler = CommandHandler('start', self.msg_start)
         self.dispatcher.add_handler(start_handler)
         echo_handler = MessageHandler(Filters.text, self.msg_echo)
@@ -60,18 +60,6 @@ class TelegramBot(object):
         # to start the bot
         self.updater.start_polling()
         print "Bot started polling."
-       
-    def mqtt_start (self):
-        #manage connection to broker
-        self._paho_mqtt.connect('127.0.0.1', 1883)
-        self._paho_mqtt.loop_start()
-        # subscribe for a topic
-        self._paho_mqtt.subscribe(self.topic, 2)
-
-    def mqtt_stop (self):
-        self._paho_mqtt.unsubscribe(self.topic)
-        self._paho_mqtt.loop_stop()
-        self._paho_mqtt.disconnect()
         
     def msg_start(self, bot, update):
         chat_id=update.message.chat_id
@@ -97,6 +85,7 @@ class TelegramBot(object):
         print ("Connected to message broker with result code: "+str(rc))
 
     def myOnMessageReceived (self, paho_mqtt , userdata, msg):
+        print "MAMMAMAAMMAMA"
         # A new message is received
         if msg.topic=='station':
             chat_id,message=self.parseWeather(msg.payload)
@@ -157,21 +146,4 @@ class TelegramBot(object):
             message+="ABSOLUTELY administrate the treatment."
         return chat_id,message
 
-
-
-if __name__ == '__main__':
-    
-    botty=TelegramBot('jimmijamma')
-    botty.start_polling()
-    botty.mqtt_start()
-    
-    
-    
-    '''
-    jf=open('chatIDs.JSON','w')
-    data={}
-    data['ID_list']=[]
-    js=json.dumps(data)
-    jf.write(js)
-    jf.close()
-    '''
+ 

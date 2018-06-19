@@ -5,9 +5,9 @@ Created on 13 giu 2018
 '''
 import json
 import urllib
-import paho.mqtt.client as PahoMQTT
+from MQTT_classes import Publisher
 
-class ITVStation(object):
+class ITV_Station(Publisher):
     '''
     classdocs
     '''
@@ -19,27 +19,8 @@ class ITVStation(object):
         self.system=system
         self.sensors_list=[]
         
-        self.clientID = 'ITVStation'+'-'+self.system.user.id+'-'+self.system.id+'-'+self.id
-        self._paho_mqtt = PahoMQTT.Client(self.clientID, False) 
-        self._paho_mqtt.on_connect = self.myOnConnect
-        self.topic='station'
-        self.status=0
-        
-    def mqtt_start (self):
-        #manage connection to broker
-        self._paho_mqtt.connect('127.0.0.1', 1883)
-        self._paho_mqtt.loop_start()
-
-    def mqtt_stop (self):
-        self._paho_mqtt.loop_stop()
-        self._paho_mqtt.disconnect()
-        
-    def myPublish(self, topic, message):
-        # publish a message with a certain topic
-        self._paho_mqtt.publish(topic, message, 2)
-
-    def myOnConnect (self, paho_mqtt, userdata, flags, rc):
-        print "%s connected to MQTT broker with result code: %s"%(self.clientID,str(rc))
+        id_string = 'ITV_Station'+'-'+self.system.user.id+'-'+self.system.id+'-'+self.id
+        super(ITV_Station,self).__init__(clientID=id_string)
         
     def simulateSensors(self):
         temp,humidity,rain,snow,clouds=self.parseWeatherJSON()
@@ -58,7 +39,7 @@ class ITVStation(object):
         data['snow']=snow
         data['clouds']=clouds
         message=json.dumps(data)
-        self.myPublish(self.topic, message)
+        self.mqtt_publish(topic='measurement/station/'+self.system.user.id+'/'+self.system.id+'/'+self.id, message=message)
         
     def parseWeatherJSON(self):
         APPID='f8ac28f78069a7e511c00759939f94b4'

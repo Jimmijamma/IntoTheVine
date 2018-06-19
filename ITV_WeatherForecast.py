@@ -7,7 +7,7 @@ import urllib
 import json
 import datetime
 import numpy as np
-import paho.mqtt.client as PahoMQTT
+from MQTT_classes import Publisher
 
 class Measurement(object):
     
@@ -26,7 +26,7 @@ class Measurement(object):
         self.hour=':'.join(str(date_s).split()[1].split(':')[:2])
 
 
-class WeatherForecast(object):
+class WeatherForecast(Publisher):
     
     def __init__(self,system):
         self.system=system
@@ -35,25 +35,7 @@ class WeatherForecast(object):
         self.APPID='f8ac28f78069a7e511c00759939f94b4'
         self.measurement_list=[]
         
-        self.clientID = 'ITVforecast'
-        self._paho_mqtt = PahoMQTT.Client(self.clientID, False) 
-        #self._paho_mqtt.on_connect = self.myOnConnect
-        self.pub_topic='forecast'
-        
-        
-    def mqtt_start (self):
-        #manage connection to broker
-        self._paho_mqtt.connect('127.0.0.1', 1883)
-        self._paho_mqtt.loop_start()
-
-    def mqtt_stop (self):
-        self._paho_mqtt.loop_stop()
-        self._paho_mqtt.disconnect()
-        
-    def myPublish(self, topic, message):
-        # publish a message with a certain topic
-        self._paho_mqtt.publish(topic, message, 2)
-        print "message published"
+        super(WeatherForecast,self).__init__(clientID='ITV_WeatherForecast')
         
     def five_days_forecast(self):
         self.measurement_list=[]
@@ -99,7 +81,7 @@ class WeatherForecast(object):
             msrmnt['rain']=r
             data['measurement_list'].append(msrmnt)
         js=json.dumps(data)
-        self.myPublish(topic=self.pub_topic, message=js)
+        self.mqtt_publish(topic='measurement/forecast', message=js)
         
     
     

@@ -6,46 +6,26 @@ Created on 15 giu 2018
 from sklearn.externals import joblib
 import paho.mqtt.client as PahoMQTT
 import json
+from MQTT_classes import PublisherSubscriber
 
-class ITV_RiskScale(object):
+class ITV_RiskScale(PublisherSubscriber):
     '''
     classdocs
     '''
-
-
     def __init__(self):
         '''
         Constructor
         '''
+        # class attributes
         self.pkl_model='LMmodel.pkl'
         self.max_risk=1
         
-        # MQTT attributes
-        self.clientID = 'ITV_RiskScale'
-        self._paho_mqtt = PahoMQTT.Client(self.clientID, False)
-        # register the callback
-        self._paho_mqtt.on_connect = self.myOnConnect
-        self._paho_mqtt.on_message = self.myOnMessageReceived
-        self.sub_topic = '#'
+        # MQTT class override
+        clientID='ITV_RiskScale'
+        sub_topic='measurement/#'
+        super(ITV_RiskScale,self).__init__(clientID=clientID,sub_topic=sub_topic)
         
-    def mqtt_start (self):
-        #manage connection to broker
-        self._paho_mqtt.connect('127.0.0.1', 1883)
-        self._paho_mqtt.loop_start()
-        # subscribe for a topic
-        self._paho_mqtt.subscribe(self.sub_topic, 2)
-
-    def mqtt_stop (self):
-        self._paho_mqtt.unsubscribe(self.sub_topic)
-        self._paho_mqtt.loop_stop()
-        self._paho_mqtt.disconnect()
-        
-    def myOnConnect (self, paho_mqtt, userdata, flags, rc):
-        print ("Connected to message broker with result code: "+str(rc))
-        
-    def myPublish(self, topic, message):
-        # publish a message with a certain topic
-        self._paho_mqtt.publish(topic, message, 2)
+    
         
     def myOnMessageReceived (self, paho_mqtt , userdata, msg):
         # A new message is received

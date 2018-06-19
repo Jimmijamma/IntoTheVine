@@ -13,7 +13,7 @@ import random
 from sklearn.externals import joblib
 import sklearn
 
-class ITV_LM_Trainer(object):
+class ITV_ML_Trainer(object):
     '''
     classdocs
     '''
@@ -29,7 +29,7 @@ class ITV_LM_Trainer(object):
         self.X_test=None
         self.Y_train=None
         self.Y_test=None
-        self.pkl_model='LMmodel.pkl'
+        self.pkl_model='MLmodel.pkl'
         
     def parseDataset(self):
         mat=pd.read_excel(self.dataset)
