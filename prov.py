@@ -5,6 +5,11 @@ Created on 18 giu 2018
 '''
 from MQTT_classes import Publisher, Subscriber
 import time
+import ITV_MachineLearning.ITV_ML_Trainer
+import urllib
+import json
+
+#from pymongo import MongoClient
 
 class Bello(Publisher):
     
@@ -18,17 +23,14 @@ class Brutto(Subscriber):
     
     def __init__(self,clientID,sub_topic):
         super(Brutto,self).__init__(clientID,sub_topic)
+        
+    def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
+        Subscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
+        
     
     
        
 if __name__ == '__main__':
-    b=Bello('Mori321412')
-    s=Brutto('Msadas','ciao')
-    s.mqtt_start()
-    b.mqtt_start()
-    
-    time.sleep(5)
-    b.mqtt_publish(topic='ciao', message='lolletto')
-    time.sleep(5)
-    b.mqtt_stop()
-    s.mqtt_stop()
+    res = urllib.urlopen('http://127.0.0.1:8080/system_conf/ITV_TelegramBot')
+    res_obj=json.load(res)
+    print res_obj['token']

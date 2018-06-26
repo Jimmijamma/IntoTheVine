@@ -12,17 +12,19 @@ from sympy.polys.numberfields import IntervalPrinter
 import random
 from sklearn.externals import joblib
 import sklearn
+from MQTT_classes import PublisherSubscriber
+import json
 
-class ITV_ML_Trainer(object):
+class ITV_MachineLearning(PublisherSubscriber):
     '''
     classdocs
     '''
 
-    def __init__(self, dataset):
+    def __init__(self):
         '''
         Constructor
         '''
-        self.dataset=dataset
+        self.dataset="/Users/jimmijamma/Desktop/Dataset.xlsx"
         self.X=None
         self.Y=None
         self.X_train=None
@@ -30,6 +32,11 @@ class ITV_ML_Trainer(object):
         self.Y_train=None
         self.Y_test=None
         self.pkl_model='MLmodel.pkl'
+        
+        # MQTT class override
+        clientID='ITV_MachineLearning'
+        sub_topic='measurement/#'
+        super(ITV_MachineLearning,self).__init__(clientID=clientID,sub_topic=sub_topic)
         
     def parseDataset(self):
         mat=pd.read_excel(self.dataset)
@@ -42,14 +49,9 @@ class ITV_ML_Trainer(object):
         
         self.X=mat[:,1:4] # Temperature,Humidity,Rain
         self.Y=np.array(mat[:,-1]/60000) # Leaf Wetness
-        '''
-        self.Y[self.Y<180]=0
-        self.Y[self.Y<600]=1
-        self.Y[self.Y>=600]=2
-        '''
+        
         #self.Y=np.array(pd.cut(self.Y,bins=[-np.inf,60,600,np.inf], labels=[0,1,2]))
         #self.Y=np.array(pd.cut(self.Y,bins=[-np.inf,3,6,9,12,15,18,21,24,np.inf], labels=[0,3,6,9,12,15,18,21,24]))
-        
         
     def trainModel(self, thr=0.1):
         n_el=int(thr*len(self.X))
@@ -72,12 +74,43 @@ class ITV_ML_Trainer(object):
         clf = joblib.load(self.pkl_model)
         Y_pred=clf.predict(self.X_test)
         err=Y_pred-self.Y_test
-        n_good=len(err[err==0])
+        n_good=len(err[err<1])
         print np.mean(abs(err))
         print n_good*100.0/len(Y_pred)
-        #print Y_pred,self.Y_test
         print err
         print zip(Y_pred,self.Y_test)
-        #for el in list(set(Y_pred)):
-            #print "%d: %d vs %d"%(el,len(Y_pred[Y_pred==el]),len(self.Y_test[self.Y_test==el]))
-            #pass
+        
+            
+    def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
+        PublisherSubscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
+        # A new message is received
+        self.completeMeasurement(msg.payload,msg.topic)
+            
+    def completeMeasurement(self, payload, topic):
+        dict_s = payload
+        senML=json.loads(dict_s)
+        for e in senML['e']:
+            if e['n']=='temperature':
+                temp=e['v']
+            elif e['n']=='humidity':
+                humidity=e['v']
+            elif e['n']=='rain':
+                rain=e['v']
+        tuple_=[[temp,humidity,rain]]
+        lw=self.computeLeafWetness(tuple_)
+        lw=lw[0]
+        if lw<0:
+            lw=0
+        senML['e'].append({'n': 'leaf_wetness', 'u':'h/day', 't': None, "v":lw})
+        message=json.dumps(senML)
+        reply_topic='leaf_wetness/'+topic.split('/')[1]
+        self.mqtt_publish(topic=reply_topic, message=message)
+          
+    def computeLeafWetness(self, tuple):
+        clf = joblib.load(self.pkl_model)
+        lw=clf.predict(tuple)
+        return lw
+    
+if __name__ == '__main__':
+    
+    ml = ITV_MachineLearning()

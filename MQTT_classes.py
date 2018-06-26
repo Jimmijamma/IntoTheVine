@@ -34,7 +34,7 @@ class Publisher(object):
     def mqtt_publish (self, topic, message):
         # publish a message with a certain topic
         self._paho_mqtt.publish(topic, message, 2)
-        print "Message published by %s with topic %s"%(self.clientID,topic)
+        print "%s: Message published by with topic %s"%(self.clientID,topic)
         
         
 class Subscriber(object):
@@ -66,7 +66,7 @@ class Subscriber(object):
         print "%s connected to message broker with result code: %s" %(self.clientID,str(rc))
         
     def mqtt_onMessageReceived (self, paho_mqtt , userdata, msg):
-        print 'Message received with payload %s' %msg.payload
+        print '%s: Message received with topic %s' %(self.clientID,msg.topic)
     
     
 class PublisherSubscriber(object):
@@ -97,7 +97,10 @@ class PublisherSubscriber(object):
     def mqtt_onConnect (self, paho_mqtt, userdata, flags, rc):
         print "%s connected to message broker with result code: %s" %(self.clientID,str(rc))
         
+    def mqtt_onMessageReceived (self, paho_mqtt , userdata, msg):
+        print '%s: Message received with topic %s' %(self.clientID,msg.topic)
+        
     def mqtt_publish (self, topic, message):
         # publish a message with a certain topic
         self._paho_mqtt.publish(topic, message, 2)
-        print "Message published by %s with topic %s"%(self.clientID,topic)
+        print "%s: Message published by with topic %s"%(self.clientID,topic)

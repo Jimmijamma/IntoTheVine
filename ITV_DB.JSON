@@ -1,0 +1,10 @@
+{"users": [{"user_id": 578155659, "conf": [], "stations": []}],
+"system":[
+	{"service_id": "telegram_bot",
+	"token":"610146619:AAFydsAw1I2QTCRI2mHzSEkifekuI3VM5sU"
+	},
+	{"service_id": "openweathermap",
+	"forecast_url":"http://api.openweathermap.org/data/2.5/forecast",
+	"weather_url":"http://api.openweathermap.org/data/2.5/weather",
+	"appid":"f8ac28f78069a7e511c00759939f94b4"}]
+}

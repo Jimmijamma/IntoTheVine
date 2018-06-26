@@ -3,10 +3,9 @@ Created on 15 giu 2018
 
 @author: jimmijamma
 '''
-from sklearn.externals import joblib
-import paho.mqtt.client as PahoMQTT
 import json
 from MQTT_classes import PublisherSubscriber
+import time
 
 class ITV_RiskScale(PublisherSubscriber):
     '''
@@ -16,80 +15,53 @@ class ITV_RiskScale(PublisherSubscriber):
         '''
         Constructor
         '''
-        # class attributes
-        self.pkl_model='LMmodel.pkl'
-        self.max_risk=1
-        
         # MQTT class override
         clientID='ITV_RiskScale'
-        sub_topic='measurement/#'
+        sub_topic='leaf_wetness/#'
         super(ITV_RiskScale,self).__init__(clientID=clientID,sub_topic=sub_topic)
         
-    
-        
-    def myOnMessageReceived (self, paho_mqtt , userdata, msg):
+    def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
+        PublisherSubscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
         # A new message is received
-        if msg.topic=='station':
-            self.parseWeather(msg.payload)
-        
-        elif msg.topic=='forecast':
-            self.parseForecast(msg.payload)
+        risk=self.computeRisk(msg.payload)  
+        if msg.topic=='leaf_wetness/station':
+            reply_topic='alert/station'
+            self.sendAlert(msg.payload, risk, reply_topic)
             
-        print "received %s message" %msg.topic
+        elif msg.topic=='leaf_wetness/forecast':
+            reply_topic='alert/forecast'
+            self.sendAlert(msg.payload, risk, reply_topic)
 
-        
-    def parseWeather(self, payload):
+    def computeRisk(self, payload):
         dict_s = payload
-        data=json.loads(dict_s)
-        chat_id=data['user']
-        system=data['system']
-        station=data['station']
-        temp=data['temp']
-        humidity=data['humidity']
-        rain=data['rain']
-        snow=data['snow']
+        senML=json.loads(dict_s)
+        for e in senML['e']:
+            if e['n']=='temperature':
+                temp=e['v']
+            if e['n']=='leaf_wetness':
+                lw=e['v']
         if temp<10:
             risk=0
         else:
-            tuple=[[temp,humidity,rain+snow]]
-            lw=self.computeLeafWetness(tuple)
-            lw=lw[0]
             if lw>3:
                 if lw<6:
                     risk=1
                 else:
                     risk=2
-                data2={}
-                data2['user']=chat_id
-                data2['system']=system
-                data2['station']=station
-                data2['risk']=risk
-                message=json.dumps(data2)
-                self.myPublish(topic='alert/weather', message=message)
-                
-    def parseForecast(self,payload):
-        dict_s = payload
-        data=json.loads(dict_s)
-        chat_id=data['user']
-        system=data['system']
-        for el in data['measurement_list']:
-            tuple=[[el['temp'],el['humidity'],el['rain']]]
-            lw=self.computeLeafWetness(tuple)
-            lw=lw[0]
-            if lw>3:
-                    if lw<6:
-                        risk=1
-                    else:
-                        risk=2
-                    data2={}
-                    data2['user']=chat_id
-                    data2['system']=system
-                    data2['risk']=risk
-                    message=json.dumps(data2)
-                    self.myPublish(topic='alert/forecast', message=message)
-        
-        
-    def computeLeafWetness(self, tuple):
-        clf = joblib.load(self.pkl_model)
-        lw=clf.predict(tuple)
-        return lw
+            else:
+                risk=0
+        return risk
+    
+    def sendAlert(self,payload,risk,reply_topic):
+        if risk==0:
+            return
+        else:
+            dict_s = payload
+            senML=json.loads(dict_s)
+            senML['e'].append({'n': 'risk', 'u':None, 't': None, "v":risk})
+            message=json.dumps(senML)
+            self.mqtt_publish(topic=reply_topic, message=message)
+            
+if __name__ == '__main__':
+    
+    rs = ITV_RiskScale
