@@ -37,8 +37,9 @@ class ITV_Catalog(object):
             users=self.db['users']
             f=False
             for u in users:
-                if u['chat_id']==obj['chat_id']:
-                    f=True
+                if 'user_id' in u:
+                    if u['user_id']==obj['user_id']:
+                        f=True
             if f==False:
                 users.append(obj)
                 fp=open(self.DB_file,'w')
@@ -58,9 +59,9 @@ class ITV_Catalog(object):
             return
         
     def add_station(self, request_obj):
-        users=self.user_data['users']
+        users=self.db['users']
         for u in users:
-            if u['chat_id']==request_obj['user']:
+            if u['user_id']==request_obj['user']:
                 station={}
                 station['id']=request_obj['id']
                 station['lat']=request_obj['lat']
@@ -69,7 +70,7 @@ class ITV_Catalog(object):
                 u['stations'].append(station)
                 break
         fp=open(self.DB_file,'w')
-        json.dump(self.user_data, fp)
+        json.dump(self.db, fp)
         fp.close()
         return
     

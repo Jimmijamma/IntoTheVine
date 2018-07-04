@@ -31,15 +31,16 @@ class ITV_Station(Publisher):
         self.lon=self.conf['station']['long']
         is_new=self.conf['station']['is_new']
         self.appid='f8ac28f78069a7e511c00759939f94b4'
+        self.was_new=False
         self.installStation(is_new)
             
         id_string = 'ITV_Station/'+str(self.user)+'/'+str(self.id)
         super(ITV_Station,self).__init__(clientID=id_string)
         
     def installStation(self, is_new):
-        self.was_new=False
         if is_new==True:
             self.was_new=True
+            print 'installing station'
             id=''.join(random.choice('0123456789abcdefghijklmnopqrstuvwyxz') for i in range(5))
             self.id=id
             self.conf['station']['id']=self.id

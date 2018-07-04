@@ -25,6 +25,7 @@ class ITV_TelegramBot(Subscriber):
 
         config_json=self.loadConfig()
         self.token=config_json['token']
+        self.send_location_url=config_json['send_location_url']
         self.updater=Updater(token=self.token)
         self.dispatcher = self.updater.dispatcher
         
@@ -39,6 +40,8 @@ class ITV_TelegramBot(Subscriber):
         # Message handlers
         start_handler = CommandHandler('start', self.msg_start)
         self.dispatcher.add_handler(start_handler)
+        set_ndaysforecast = CommandHandler('set_ndaysforecast', self.msg_ndaysforecast, pass_args=True)
+        self.dispatcher.add_handler(set_ndaysforecast)
         echo_handler = MessageHandler(Filters.text, self.msg_echo)
         self.dispatcher.add_handler(echo_handler)
         
@@ -46,10 +49,11 @@ class ITV_TelegramBot(Subscriber):
         fp=open('ITV_TelegramBot_config.JSON','r')
         conf=json.load(fp)
         fp.close()
-        self.catalog_ip=conf['catalog_ip']
-        self.catalog_port=conf['catalog_port']
+        catalog_ip=conf['catalog_ip']
+        catalog_port=conf['catalog_port']
+        self.catalog_url='http://'+str(catalog_ip)+':'+str(catalog_port)
         # TelegramBot attributes
-        res = urllib.urlopen('http://'+self.catalog_ip+':'+str(self.catalog_port)+'/system_conf/ITV_TelegramBot')
+        res = urllib.urlopen(self.catalog_url+'/system_conf/telegram_bot')
         res_obj=json.load(res)
         return res_obj
 
@@ -61,21 +65,27 @@ class ITV_TelegramBot(Subscriber):
     def msg_start(self, bot, update):
         chat_id=update.message.chat_id
         payload={}
-        payload['chat_id']=chat_id
+        payload['user_id']=chat_id
         payload['systems']=[]
-        payload['conf']=[]
+        payload['settings']={'ndaysforecast':5}
         payload=json.dumps(payload)
-        r=requests.put('http://'+self.catalog_ip+':'+self.catalog_port+'/add_user',data=payload)
+        r=requests.put(self.catalog_url+'/add_user',data=payload)
         r=r.status_code
         if r==201:
             text="Congratulations! You have just signed in IntoTheVine!\n"
             text+="Your ID is %s" %(chat_id)
         elif r==400:
             text="You have already an ITV account"
+        else:
+            text="Request ERROR"
         bot.send_message(chat_id=chat_id, text=text)
         
     def msg_echo(self,bot, update):
         bot.send_message(chat_id=update.message.chat_id, text='Sorry, this is not a command. All commands start with \'/\'')
+        
+    def msg_ndaysforecast(self,bot,update, args):
+        
+        bot.send_message(chat_id=update.message.chat_id, text=str(args[1]))
         
     def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
         Subscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
@@ -97,8 +107,7 @@ class ITV_TelegramBot(Subscriber):
         senML=json.loads(dict_s)
         clientID=senML['bn'].split('/')
         chat_id=clientID[1]
-        system=clientID[2]
-        station=clientID[3]
+        station=clientID[2]
         alert_msg='<b>Alert!</b>\n'
         dot_list=''
         for e in senML['e']:
@@ -109,11 +118,11 @@ class ITV_TelegramBot(Subscriber):
                     dot_list+='> %s = <b>%.2f %s</b>\n'%(e['n'],e['v'],e['u'])
             else:
                 if e['v']==1:
-                    msg1="Weather status at <b>station '%s'</b> of your <b>system '%s'</b> is worrying:\n"%(station,system)
+                    msg1="Weather status at <b>station '%s'</b> is worrying:\n"%(station)
                     msg2="You'd better administrate the treatment."
         
                 elif e['v']==2:
-                    msg1="Weather status at <b>station '%s'</b> of your system <b>'%s'</b> is <b>critic</b>:\n"%(station,system)
+                    msg1="Weather status at <b>station '%s'</b> is <b>critic</b>:\n"%(station)
                     msg2="<b>Absolutely</b> administrate the treatment."
         alert_msg+=msg1+dot_list+msg2
         return chat_id,alert_msg
@@ -123,9 +132,7 @@ class ITV_TelegramBot(Subscriber):
         senML=json.loads(dict_s)
         clientID=senML['bn'].split('/')
         chat_id=clientID[1]
-        system=clientID[2]
-        station=clientID[3]
-        ut=ITV_Util()
+        station=clientID[2]
         s_days=ITV_Util().checkDate(datetime.utcfromtimestamp(senML['bt']))
         last_update='(Last update: %s)\n'%s_days
         alert_msg='<b>Alert!</b>\n'
@@ -138,11 +145,11 @@ class ITV_TelegramBot(Subscriber):
                     dot_list+='> %s = <b>%.2f %s</b>\n'%(e['n'],e['v'],e['u'])
             elif e['n']=='risk':
                 if e['v']==1:
-                    msg1="Forecast status at <b>station '%s'</b> of your <b>system '%s'</b> is worrying:\n"%(station,system)
+                    msg1="Forecast status at <b>station '%s'</b> is worrying:\n"%(station)
                     msg2="You'd better administrate the treatment."
         
                 elif e['v']==2:
-                    msg1="Forecast status at <b>station '%s'</b> of your system <b>'%s'</b> is <b>critic</b>:\n"%(station,system)
+                    msg1="Forecast status at <b>station '%s'</b> is <b>critic</b>:\n"%(station)
                     msg2="<b>Absolutely</b> administrate the treatment."
             elif e['n']=='t_start':
                 t_start=datetime.utcfromtimestamp(e['v'])
@@ -157,14 +164,25 @@ class ITV_TelegramBot(Subscriber):
         obj=json.loads(dict_s)
         chat_id=obj['user']
         station_id=obj['id']
-        longit=obj['long']
+        lon=obj['long']
         lat=obj['lat']
         alert_msg='<b>Congratulations!</b>\n'
-        alert_msg+='Your new station (id: %s) has been successfully installed at lat: %s, long: %s'%(str(station_id),str(lat),str(longit))
+        alert_msg+='Your new station (id: %s) has been successfully installed at lat: %s, long: %s'%(str(station_id),str(lat),str(lon))
+        loc_url=self.send_location_url
+        loc_url=loc_url.replace('<token>',self.token)
+        loc_url=loc_url.replace('<chat_id>',str(chat_id))
+        loc_url=loc_url.replace('<lat>',str(lat))
+        loc_url=loc_url.replace('<lon>',str(lon))
+        res=requests.get(loc_url)
         return chat_id,alert_msg
+    
+    def startup(self):
+        self.mqtt_start()
+        self.start_polling()
         
 if __name__ == '__main__':
     
     bot=ITV_TelegramBot()
+    bot.startup()
 
  
