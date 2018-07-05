@@ -10,6 +10,7 @@ import time
 import requests
 import random
 import numpy as np
+from threading import Thread
 
 class ITV_Station(Publisher):
     '''
@@ -23,8 +24,9 @@ class ITV_Station(Publisher):
         self.conf=json.load(fp)
         fp.close()
         
-        self.catalog_ip=self.conf['catalog']['ip']
-        self.catalog_port=self.conf['catalog']['port']
+        catalog_ip=self.conf['catalog']['ip']
+        catalog_port=self.conf['catalog']['port']
+        self.catalog_url='http://'+str(catalog_ip)+':'+str(catalog_port)
         
         self.user=self.conf['station']['user']
         self.lat=self.conf['station']['lat']
@@ -49,7 +51,7 @@ class ITV_Station(Publisher):
             json.dump(self.conf, fp)
             fp.close()
             payload=json.dumps(self.conf['station'])
-            r=requests.put('http://'+self.catalog_ip+':'+self.catalog_port+'/add_station',data=payload)
+            r=requests.put(self.catalog_url+'/add_station',data=payload)
             sc=r.status_code
             #print"New station created with id: %s, user: %s, system %s"%(self.id,self.user,self.system)
         else:
@@ -114,7 +116,9 @@ class ITV_Station(Publisher):
         return m_list, timestamp
         
     def mqtt_sendForecast(self, m_list, timestamp):
-        for ii in range(5):
+        res=requests.get(self.catalog_url+'/getUserSetting/ndaysforecast/'+str(self.user))
+        ndaysforecast=res.json()['ndaysforecast']
+        for ii in range(ndaysforecast):
             start=ii*8
             stop=start+7
             t=[]
@@ -143,23 +147,35 @@ class ITV_Station(Publisher):
         if self.was_new==True:
             message=json.dumps(self.conf['station'])
             self.mqtt_publish(topic='alert/new_station', message=message)
+    
+    def sensor_routine(self, t_end):
+        res=requests.get(self.catalog_url+'/getUserSetting/interval_weather/'+str(self.user))
+        iw=res.json()['interval_weather']
+        while time.time()<t_end:
+            self.simulateSensors()
+            time.sleep(iw/10)
             
-    def routine(self):
+    def forecast_routine(self, t_end):
+        res=requests.get(self.catalog_url+'/getUserSetting/interval_forecast/'+str(self.user))
+        iw=res.json()['interval_forecast']
+        while time.time()<t_end:
+            m,t=self.http_getForecast()
+            self.mqtt_sendForecast(m, t)
+            time.sleep(iw/10)
+    
+    def global_routine(self):
         self.mqtt_start()
-        a=0
-        while (a<3):
-            b=0
-            m_list,timestamp=self.http_getForecast()
-            self.mqtt_sendForecast(m_list, timestamp)
-            time.sleep(2)
-            while (b<3):
-                self.simulateSensors()
-                time.sleep(2)
-                b+=1
-            a+=1
+        t_end = time.time() + 30
+        thread_w = Thread(target = self.sensor_routine, args=[t_end])
+        thread_f = Thread(target = self.forecast_routine, args=[t_end])
+        thread_w.start()
+
+        thread_f.start()
+        thread_w.join()
+        thread_f.join()
         self.mqtt_stop()
     
 if __name__ == '__main__':
     
     station=ITV_Station()
-    station.routine()
+    station.global_routine()

@@ -67,7 +67,7 @@ class ITV_TelegramBot(Subscriber):
         payload={}
         payload['user_id']=chat_id
         payload['systems']=[]
-        payload['settings']={'ndaysforecast':5}
+        payload['settings']={'ndaysforecast':5,'interval_weather':60,'interval_forecast':180}
         payload=json.dumps(payload)
         r=requests.put(self.catalog_url+'/add_user',data=payload)
         r=r.status_code
@@ -84,8 +84,17 @@ class ITV_TelegramBot(Subscriber):
         bot.send_message(chat_id=update.message.chat_id, text='Sorry, this is not a command. All commands start with \'/\'')
         
     def msg_ndaysforecast(self,bot,update, args):
-        
-        bot.send_message(chat_id=update.message.chat_id, text=str(args[1]))
+        chat_id=update.message.chat_id
+        if len(args)==0:
+            text='You have to pass as argument a number from 1 to 5.'
+        elif len(args)>1:
+            text='Too many arguments.'
+        elif int(args[0]) not in [1,2,3,4,5]:
+            text='The argument must be a number from 1 to 5.'
+        else:
+            requests.get(self.catalog_url+'/set_ndaysforecast/'+str(chat_id)+'/'+args[0])
+            text="You will now receive forecast with a %s-days advance" %args[0]
+        bot.send_message(chat_id=chat_id, text=text)
         
     def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
         Subscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
@@ -93,16 +102,16 @@ class ITV_TelegramBot(Subscriber):
         if msg.topic=='station':
             chat_id,message=self.parseWeather(msg.payload)
         elif msg.topic=='alert/station':
-            chat_id,message=self.parseAlertStation(msg.payload)
+            chat_id,message=self.sendAlertStation(msg.payload)
         elif msg.topic=='alert/forecast':
-            chat_id,message=self.parseAlertForecast(msg.payload)
+            chat_id,message=self.sendAlertForecast(msg.payload)
         elif msg.topic=='alert/new_station':
             chat_id,message=self.sendAlertNewStation(msg.payload)
         def callback_now(bot,job,chat_id=chat_id,text=message):
             bot.send_message(chat_id=chat_id, text=text, parse_mode='HTML')
         self.job_queue.run_once(callback_now, when=0)
         
-    def parseAlertStation(self, payload):
+    def sendAlertStation(self, payload):
         dict_s = payload
         senML=json.loads(dict_s)
         clientID=senML['bn'].split('/')
@@ -127,7 +136,7 @@ class ITV_TelegramBot(Subscriber):
         alert_msg+=msg1+dot_list+msg2
         return chat_id,alert_msg
     
-    def parseAlertForecast(self, payload):
+    def sendAlertForecast(self, payload):
         dict_s = payload
         senML=json.loads(dict_s)
         clientID=senML['bn'].split('/')

@@ -28,7 +28,18 @@ class ITV_Catalog(object):
                 for s in self.db['system']:
                     if s['service_id']==uri[1]:
                         return json.dumps(s)
-            
+        if uri[0] == 'set_ndaysforecast':
+            for u in self.db['users']:
+                if u['user_id']==int(uri[1]):
+                    u['settings']['ndaysforecast']=int(uri[2])
+                    self.update_db()
+                    return
+                
+        if uri[0] == 'getUserSetting':
+            for u in self.db['users']:
+                if u['user_id']==int(uri[2]):
+                    return json.dumps({uri[1]:u['settings'][uri[1]]})
+
     
     def PUT(self, *uri, **params):
         if uri[0] == 'add_user':
@@ -42,9 +53,7 @@ class ITV_Catalog(object):
                         f=True
             if f==False:
                 users.append(obj)
-                fp=open(self.DB_file,'w')
-                json.dump(self.db, fp)
-                fp.close()
+                self.update_db()
                 cherrypy.response.status = 201
                 return 
             else:
@@ -69,10 +78,13 @@ class ITV_Catalog(object):
                 station['system']=None
                 u['stations'].append(station)
                 break
+        self.update_db()
+        return
+    
+    def update_db(self):
         fp=open(self.DB_file,'w')
         json.dump(self.db, fp)
         fp.close()
-        return
     
         
 if __name__ == '__main__':
