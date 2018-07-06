@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on 19 mag 2018
 
@@ -23,7 +24,7 @@ class ITV_TelegramBot(Subscriber):
         
         self.id='ITV_TelegramBot'
 
-        config_json=self.loadConfig()
+        config_json=self.loadSettings()
         self.token=config_json['token']
         self.send_location_url=config_json['send_location_url']
         self.updater=Updater(token=self.token)
@@ -45,7 +46,7 @@ class ITV_TelegramBot(Subscriber):
         echo_handler = MessageHandler(Filters.text, self.msg_echo)
         self.dispatcher.add_handler(echo_handler)
         
-    def loadConfig(self):
+    def loadSettings(self):
         fp=open('ITV_TelegramBot_config.JSON','r')
         conf=json.load(fp)
         fp.close()
@@ -64,13 +65,7 @@ class ITV_TelegramBot(Subscriber):
         
     def msg_start(self, bot, update):
         chat_id=update.message.chat_id
-        payload={}
-        payload['user_id']=chat_id
-        payload['systems']=[]
-        payload['settings']={'ndaysforecast':5,'interval_weather':60,'interval_forecast':180}
-        payload=json.dumps(payload)
-        r=requests.put(self.catalog_url+'/add_user',data=payload)
-        r=r.status_code
+        r=self.insertNewUser(chat_id)
         if r==201:
             text="Congratulations! You have just signed in IntoTheVine!\n"
             text+="Your ID is %s" %(chat_id)
@@ -95,6 +90,15 @@ class ITV_TelegramBot(Subscriber):
             requests.get(self.catalog_url+'/set_ndaysforecast/'+str(chat_id)+'/'+args[0])
             text="You will now receive forecast with a %s-days advance" %args[0]
         bot.send_message(chat_id=chat_id, text=text)
+        
+    def insertNewUser(self, user_id):
+        payload={}
+        payload['user_id']=user_id
+        payload['systems']=[]
+        payload['settings']={'ndaysforecast':5,'interval_weather':60,'interval_forecast':180}
+        payload=json.dumps(payload)
+        r=requests.put(self.catalog_url+'/add_user',data=payload)
+        r=r.status_code
         
     def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
         Subscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
@@ -127,11 +131,11 @@ class ITV_TelegramBot(Subscriber):
                     dot_list+='> %s = <b>%.2f %s</b>\n'%(e['n'],e['v'],e['u'])
             else:
                 if e['v']==1:
-                    msg1="Weather status at <b>station '%s'</b> is worrying:\n"%(station)
+                    msg1="Weather status at station '%s' is worrying: \n"%(station)
                     msg2="You'd better administrate the treatment."
         
                 elif e['v']==2:
-                    msg1="Weather status at <b>station '%s'</b> is <b>critic</b>:\n"%(station)
+                    msg1="Weather status at station '%s'is critic :\n"%(station)
                     msg2="<b>Absolutely</b> administrate the treatment."
         alert_msg+=msg1+dot_list+msg2
         return chat_id,alert_msg
@@ -154,11 +158,11 @@ class ITV_TelegramBot(Subscriber):
                     dot_list+='> %s = <b>%.2f %s</b>\n'%(e['n'],e['v'],e['u'])
             elif e['n']=='risk':
                 if e['v']==1:
-                    msg1="Forecast status at <b>station '%s'</b> is worrying:\n"%(station)
+                    msg1="Forecast status at station '%s' is worrying: \n"%(station)
                     msg2="You'd better administrate the treatment."
         
                 elif e['v']==2:
-                    msg1="Forecast status at <b>station '%s'</b> is <b>critic</b>:\n"%(station)
+                    msg1="Forecast status at station '%s' is critic :\n"%(station)
                     msg2="<b>Absolutely</b> administrate the treatment."
             elif e['n']=='t_start':
                 t_start=datetime.utcfromtimestamp(e['v'])
@@ -194,4 +198,3 @@ if __name__ == '__main__':
     bot=ITV_TelegramBot()
     bot.startup()
 
- 

@@ -23,26 +23,34 @@ class ITV_Station(Publisher):
         fp=open('ITV_Station_conf.JSON','r')
         self.conf=json.load(fp)
         fp.close()
-        
+        # loading the address of the Catalog
         catalog_ip=self.conf['catalog']['ip']
         catalog_port=self.conf['catalog']['port']
         self.catalog_url='http://'+str(catalog_ip)+':'+str(catalog_port)
-        
+        # loading the station parameters
         self.user=self.conf['station']['user']
         self.lat=self.conf['station']['lat']
         self.lon=self.conf['station']['long']
         is_new=self.conf['station']['is_new']
-        self.appid='f8ac28f78069a7e511c00759939f94b4'
+        # install the station if it's the first startup
         self.was_new=False
         self.installStation(is_new)
-            
+        # load settings from the catalog
+        self.loadSettings()
+        # MQTT override
         id_string = 'ITV_Station/'+str(self.user)+'/'+str(self.id)
         super(ITV_Station,self).__init__(clientID=id_string)
+    
+    def loadSettings(self):
+        res = urllib.urlopen(self.catalog_url+'/system_conf/openweathermap')
+        res_obj=json.load(res)
+        self.appid=res_obj['appid']
+        self.weather_url=res_obj['weather_url'].replace('<lat>',self.lat).replace('<lon>',self.lon).replace('<appid>',self.appid)
+        self.forecast_url=res_obj['forecast_url'].replace('<lat>',self.lat).replace('<lon>',self.lon).replace('<appid>',self.appid)
         
     def installStation(self, is_new):
         if is_new==True:
             self.was_new=True
-            print 'installing station'
             id=''.join(random.choice('0123456789abcdefghijklmnopqrstuvwyxz') for i in range(5))
             self.id=id
             self.conf['station']['id']=self.id
@@ -51,9 +59,7 @@ class ITV_Station(Publisher):
             json.dump(self.conf, fp)
             fp.close()
             payload=json.dumps(self.conf['station'])
-            r=requests.put(self.catalog_url+'/add_station',data=payload)
-            sc=r.status_code
-            #print"New station created with id: %s, user: %s, system %s"%(self.id,self.user,self.system)
+            requests.put(self.catalog_url+'/add_station',data=payload)
         else:
             self.id=self.conf['station']['id']
         
@@ -71,8 +77,7 @@ class ITV_Station(Publisher):
         self.mqtt_publish(topic='measurement/station', message=message)
         
     def http_getWeather(self):
-        full_api_url='http://api.openweathermap.org/data/2.5/weather?lat='+self.lat+'&lon='+self.lon+'&APPID='+self.appid
-        url = urllib.urlopen(full_api_url)
+        url = urllib.urlopen(self.weather_url)
         output = url.read().decode('utf-8')
         raw_dict= json.loads(output)
         url.close()
@@ -91,8 +96,7 @@ class ITV_Station(Publisher):
         return temp,humidity,rain,snow,clouds
     
     def http_getForecast(self):
-        full_api_url='http://api.openweathermap.org/data/2.5/forecast'+'?lat='+self.lat+'&lon='+self.lon+'&APPID='+self.appid
-        url = urllib.urlopen(full_api_url)
+        url = urllib.urlopen(self.forecast_url)
         output = url.read().decode('utf-8')
         raw_api_dict = json.loads(output)
         url.close()

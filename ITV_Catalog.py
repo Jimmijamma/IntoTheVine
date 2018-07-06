@@ -89,7 +89,6 @@ class ITV_Catalog(object):
         
 if __name__ == '__main__':
     
-    
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),

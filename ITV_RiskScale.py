@@ -5,7 +5,6 @@ Created on 15 giu 2018
 '''
 import json
 from MQTT_classes import PublisherSubscriber
-import time
 
 class ITV_RiskScale(PublisherSubscriber):
     '''

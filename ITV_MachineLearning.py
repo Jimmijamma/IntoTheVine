@@ -6,12 +6,9 @@ Created on 14 giu 2018
 
 import pandas as pd
 import numpy as np
-from sklearn import datasets, linear_model, neural_network, cluster,svm,gaussian_process
-from sklearn.metrics import mean_squared_error, r2_score
-from sympy.polys.numberfields import IntervalPrinter
+from sklearn import neural_network
 import random
 from sklearn.externals import joblib
-import sklearn
 from MQTT_classes import PublisherSubscriber
 import json
 

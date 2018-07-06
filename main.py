@@ -4,7 +4,6 @@ Created on 13 giu 2018
 @author: jimmijamma
 '''
 
-from ITV_TelegramBot import ITV_TelegramBot
 from ITV_MachineLearning import ITV_MachineLearning
 from ITV_RiskScale import ITV_RiskScale
 import time
