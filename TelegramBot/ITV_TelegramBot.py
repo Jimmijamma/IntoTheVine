@@ -11,7 +11,7 @@ import json
 import urllib
 from datetime import datetime
 from MQTT_classes import Subscriber
-from ITV_Util import ITV_Util
+from TelegramBot import ITV_Util.ITV_Util
 import requests
 
 

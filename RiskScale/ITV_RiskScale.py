@@ -52,8 +52,10 @@ class ITV_RiskScale(PublisherSubscriber):
         return risk
     
     def sendAlert(self,payload,risk,reply_topic):
-        if risk==0:
+        
+        if risk==-1:
             return
+        
         else:
             dict_s = payload
             senML=json.loads(dict_s)
@@ -63,4 +65,5 @@ class ITV_RiskScale(PublisherSubscriber):
             
 if __name__ == '__main__':
     
-    rs = ITV_RiskScale
+    rs = ITV_RiskScale()
+    rs.mqtt_start()

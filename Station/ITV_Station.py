@@ -10,6 +10,7 @@ import time
 import requests
 import random
 import numpy as np
+#import Adafruit_DHT
 from threading import Thread
 
 class ITV_Station(Publisher):
@@ -20,7 +21,7 @@ class ITV_Station(Publisher):
         '''
         Constructor
         '''
-        fp=open('ITV_Station_conf.JSON','r')
+        fp=open('ITV_Station_config.JSON','r')
         self.conf=json.load(fp)
         fp.close()
         # loading the address of the Catalog
@@ -55,16 +56,25 @@ class ITV_Station(Publisher):
             self.id=id
             self.conf['station']['id']=self.id
             self.conf['station']['is_new']=False
-            fp=open('ITV_Station_conf.JSON','w')
+            fp=open('ITV_Station_config.JSON','w')
             json.dump(self.conf, fp)
             fp.close()
             payload=json.dumps(self.conf['station'])
             requests.put(self.catalog_url+'/add_station',data=payload)
         else:
             self.id=self.conf['station']['id']
-        
+     
+    '''      
+    def realSensor(self):
+        sensor = Adafruit_DHT.DHT22
+        pin = 2
+        humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
+        return humidity, temperature
+    '''
+            
     def simulateSensors(self):
         temp,humidity,rain,snow,clouds=self.http_getWeather()
+        #humidity,temp=self.realSensor()
         timestamp=time.time()
         senML={}
         senML['bn']=self.clientID
@@ -120,8 +130,8 @@ class ITV_Station(Publisher):
         return m_list, timestamp
         
     def mqtt_sendForecast(self, m_list, timestamp):
-        res=requests.get(self.catalog_url+'/getUserSetting/ndaysforecast/'+str(self.user))
-        ndaysforecast=res.json()['ndaysforecast']
+        res=requests.get(self.catalog_url+'/getUserInfo/'+str(self.user))
+        ndaysforecast=res.json()['settings']['ndaysforecast']
         for ii in range(ndaysforecast):
             start=ii*8
             stop=start+7
@@ -153,15 +163,15 @@ class ITV_Station(Publisher):
             self.mqtt_publish(topic='alert/new_station', message=message)
     
     def sensor_routine(self, t_end):
-        res=requests.get(self.catalog_url+'/getUserSetting/interval_weather/'+str(self.user))
-        iw=res.json()['interval_weather']
+        res=requests.get(self.catalog_url+'/getUserInfo/'+str(self.user))
+        iw=res.json()['settings']['interval_weather']
         while time.time()<t_end:
             self.simulateSensors()
             time.sleep(iw/10)
             
     def forecast_routine(self, t_end):
-        res=requests.get(self.catalog_url+'/getUserSetting/interval_forecast/'+str(self.user))
-        iw=res.json()['interval_forecast']
+        res=requests.get(self.catalog_url+'/getUserInfo/'+str(self.user))
+        iw=res.json()['settings']['interval_forecast']
         while time.time()<t_end:
             m,t=self.http_getForecast()
             self.mqtt_sendForecast(m, t)

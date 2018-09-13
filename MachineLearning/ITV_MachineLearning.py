@@ -4,7 +4,6 @@ Created on 14 giu 2018
 @author: jimmijamma
 '''
 
-import pandas as pd
 import numpy as np
 from sklearn import neural_network
 import random
@@ -16,12 +15,11 @@ class ITV_MachineLearning(PublisherSubscriber):
     '''
     classdocs
     '''
-
     def __init__(self):
         '''
         Constructor
         '''
-        self.dataset="/Users/jimmijamma/Desktop/Dataset.xlsx"
+        self.dataset="ML_dataset.JSON"
         self.X=None
         self.Y=None
         self.X_train=None
@@ -36,16 +34,16 @@ class ITV_MachineLearning(PublisherSubscriber):
         super(ITV_MachineLearning,self).__init__(clientID=clientID,sub_topic=sub_topic)
         
     def parseDataset(self):
-        mat=pd.read_excel(self.dataset)
-        mat.as_matrix()
-        mat=np.array(mat[2:])
-        #col0=mat[:,0].astype(str)
-        for ii, el in enumerate(mat[:,0]):
-            mat[:,0][ii]=el.month
-        mat=mat.astype(float)
         
-        self.X=mat[:,1:4] # Temperature,Humidity,Rain
-        self.Y=np.array(mat[:,-1]/60000) # Leaf Wetness
+        fp=open('ML_dataset.JSON','r')
+        ml_data=json.load(fp)
+        fp.close()
+        
+        self.X=[]
+  
+        for l in ml_data:
+            self.X.append([float(l['T']),int(l['U']),float(l['P'])]) # read temperature, humidity, rain
+            self.Y.appned(float(l['B'])/60000) # read leaf wetness (minutes)
         
         #self.Y=np.array(pd.cut(self.Y,bins=[-np.inf,60,600,np.inf], labels=[0,1,2]))
         #self.Y=np.array(pd.cut(self.Y,bins=[-np.inf,3,6,9,12,15,18,21,24,np.inf], labels=[0,3,6,9,12,15,18,21,24]))
@@ -111,3 +109,4 @@ class ITV_MachineLearning(PublisherSubscriber):
 if __name__ == '__main__':
     
     ml = ITV_MachineLearning()
+    ml.mqtt_start()

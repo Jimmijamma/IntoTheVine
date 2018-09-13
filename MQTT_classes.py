@@ -57,6 +57,7 @@ class Subscriber(object):
         self._paho_mqtt.loop_start()
         # subscribe for a topic
         self._paho_mqtt.subscribe(self.sub_topic, 2)
+        print "subscribed to topic %s" %self.sub_topic
 
     def mqtt_stop (self):
         self._paho_mqtt.loop_stop()

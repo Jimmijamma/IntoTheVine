@@ -35,10 +35,11 @@ class ITV_Catalog(object):
                     self.update_db()
                     return
                 
-        if uri[0] == 'getUserSetting':
+        if uri[0] == 'getUserInfo':
             for u in self.db['users']:
-                if u['user_id']==int(uri[2]):
-                    return json.dumps({uri[1]:u['settings'][uri[1]]})
+                if u['user_id']==int(uri[1]):
+                    #return json.dumps({uri[1]:u['settings'][uri[1]]})
+                    return json.dumps(u)
 
     
     def PUT(self, *uri, **params):
@@ -95,6 +96,8 @@ if __name__ == '__main__':
             'tools.sessions.on': True
         }
     }
+    cherrypy.config.update({'server.socket_host': '0.0.0.0' ,
+                            'server.socket_port': 8080} )
     #startCalculator()
     #startDiscography()
     cherrypy.tree.mount(ITV_Catalog(), '/',  conf)
