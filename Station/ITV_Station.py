@@ -10,7 +10,7 @@ import time
 import requests
 import random
 import numpy as np
-#import Adafruit_DHT
+import Adafruit_DHT
 from threading import Thread
 
 class ITV_Station(Publisher):
@@ -60,21 +60,21 @@ class ITV_Station(Publisher):
             json.dump(self.conf, fp)
             fp.close()
             payload=json.dumps(self.conf['station'])
-            requests.put(self.catalog_url+'/add_station',data=payload)
+            requests.put(self.catalog_url+'/add_station/',data=payload)
         else:
             self.id=self.conf['station']['id']
      
-    '''      
+          
     def realSensor(self):
         sensor = Adafruit_DHT.DHT22
         pin = 2
         humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
         return humidity, temperature
-    '''
+    
             
     def simulateSensors(self):
         temp,humidity,rain,snow,clouds=self.http_getWeather()
-        #humidity,temp=self.realSensor()
+        humidity,temp=self.realSensor()
         timestamp=time.time()
         senML={}
         senML['bn']=self.clientID
@@ -179,7 +179,7 @@ class ITV_Station(Publisher):
     
     def global_routine(self):
         self.mqtt_start()
-        t_end = time.time() + 30
+        t_end = time.time() + 80
         thread_w = Thread(target = self.sensor_routine, args=[t_end])
         thread_f = Thread(target = self.forecast_routine, args=[t_end])
         thread_w.start()

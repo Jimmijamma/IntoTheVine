@@ -5,6 +5,7 @@ Created on 15 giu 2018
 '''
 import json
 from MQTT_classes import PublisherSubscriber
+import time
 
 class ITV_RiskScale(PublisherSubscriber):
     '''
@@ -67,3 +68,5 @@ if __name__ == '__main__':
     
     rs = ITV_RiskScale()
     rs.mqtt_start()
+    time.sleep(120)
+    rs.mqtt_stop()

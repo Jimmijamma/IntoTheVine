@@ -81,7 +81,9 @@ if __name__ == '__main__':
     
     ta=ITV_ThingspeakAdaptor()
     ta.mqtt_start()
-    time.sleep(30)
+    time.sleep(120)
     ta.mqtt_stop()
+
+
         
         

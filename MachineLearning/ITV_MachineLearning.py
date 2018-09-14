@@ -10,6 +10,7 @@ import random
 from sklearn.externals import joblib
 from MQTT_classes import PublisherSubscriber
 import json
+import time
 
 class ITV_MachineLearning(PublisherSubscriber):
     '''
@@ -110,3 +111,5 @@ if __name__ == '__main__':
     
     ml = ITV_MachineLearning()
     ml.mqtt_start()
+    time.sleep(120)
+    ml.mqtt_stop()

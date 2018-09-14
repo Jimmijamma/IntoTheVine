@@ -11,8 +11,33 @@ import json
 import urllib
 from datetime import datetime
 from MQTT_classes import Subscriber
-from TelegramBot import ITV_Util.ITV_Util
+#from TelegramBot import ITV_Util.ITV_Util
 import requests
+import time
+
+class ITV_Util(object):
+    '''
+    classdocs
+    '''
+
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        pass
+    
+    def checkDate(self,date):
+        n_days=(datetime.today()-date).days
+        if n_days==0:
+            s_days='today'
+        elif n_days==1:
+            s_days='yesterday'
+        elif n_days==-1:
+            s_days='next 24 hours'
+        else:
+            s_days=str(n_days)+' days'
+        return s_days
 
 
 class ITV_TelegramBot(Subscriber):
@@ -66,6 +91,7 @@ class ITV_TelegramBot(Subscriber):
     def msg_start(self, bot, update):
         chat_id=update.message.chat_id
         r=self.insertNewUser(chat_id)
+        print r
         if r==201:
             text="Congratulations! You have just signed in IntoTheVine!\n"
             text+="Your ID is %s" %(chat_id)
@@ -95,10 +121,12 @@ class ITV_TelegramBot(Subscriber):
         payload={}
         payload['user_id']=user_id
         payload['systems']=[]
+        payload['stations']=[]
         payload['settings']={'ndaysforecast':5,'interval_weather':60,'interval_forecast':180}
         payload=json.dumps(payload)
         r=requests.put(self.catalog_url+'/add_user',data=payload)
         r=r.status_code
+        return r
         
     def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
         Subscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
@@ -137,6 +165,10 @@ class ITV_TelegramBot(Subscriber):
                 elif e['v']==2:
                     msg1="Weather status at station '%s'is critic :\n"%(station)
                     msg2="<b>Absolutely</b> administrate the treatment."
+                    
+                elif e['v']==0:
+                    msg1="Weather status at station '%s'is good :\n"%(station)
+                    msg2=""
         alert_msg+=msg1+dot_list+msg2
         return chat_id,alert_msg
     
@@ -197,4 +229,6 @@ if __name__ == '__main__':
     
     bot=ITV_TelegramBot()
     bot.startup()
+    time.sleep(120)
+    bot.mqtt_stop()
 
