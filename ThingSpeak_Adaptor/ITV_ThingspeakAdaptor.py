@@ -49,7 +49,7 @@ class ITV_ThingspeakAdaptor(Subscriber):
         res_obj=json.load(res)
         l=res_obj['stations']
         for s in l:
-            if s['station_id']==station:
+            if s['id']==station:
                 ts_key=s['thingspeak_key']
         
         for e in senML['e']:
@@ -71,17 +71,19 @@ class ITV_ThingspeakAdaptor(Subscriber):
         field5=str(risk)
         
         request_url=self.api_url.replace('<api_key>',ts_key).replace('<field1>',field1).replace('<field2>',field2).replace('<field3>',field3).replace('<field4>',field4).replace('<field5>',field5)
+        print request_url
         requests.get(request_url)
         
     def mqtt_onMessageReceived(self, paho_mqtt, userdata, msg):
         Subscriber.mqtt_onMessageReceived(self, paho_mqtt, userdata, msg)
+
         self.writeMeasurements(msg.payload)
         
 if __name__ == '__main__':
     
     ta=ITV_ThingspeakAdaptor()
     ta.mqtt_start()
-    time.sleep(120)
+    time.sleep(3600)
     ta.mqtt_stop()
 
 

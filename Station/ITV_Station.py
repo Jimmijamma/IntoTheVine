@@ -74,7 +74,7 @@ class ITV_Station(Publisher):
             
     def simulateSensors(self):
         temp,humidity,rain,snow,clouds=self.http_getWeather()
-        humidity,temp=self.realSensor()
+        #humidity,temp=self.realSensor()
         timestamp=time.time()
         senML={}
         senML['bn']=self.clientID
@@ -167,7 +167,7 @@ class ITV_Station(Publisher):
         iw=res.json()['settings']['interval_weather']
         while time.time()<t_end:
             self.simulateSensors()
-            time.sleep(iw/10)
+            time.sleep(iw)
             
     def forecast_routine(self, t_end):
         res=requests.get(self.catalog_url+'/getUserInfo/'+str(self.user))
@@ -175,11 +175,11 @@ class ITV_Station(Publisher):
         while time.time()<t_end:
             m,t=self.http_getForecast()
             self.mqtt_sendForecast(m, t)
-            time.sleep(iw/10)
+            time.sleep(iw)
     
     def global_routine(self):
         self.mqtt_start()
-        t_end = time.time() + 80
+        t_end = time.time() + 3600
         thread_w = Thread(target = self.sensor_routine, args=[t_end])
         thread_f = Thread(target = self.forecast_routine, args=[t_end])
         thread_w.start()

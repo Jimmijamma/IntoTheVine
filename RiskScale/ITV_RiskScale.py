@@ -68,5 +68,5 @@ if __name__ == '__main__':
     
     rs = ITV_RiskScale()
     rs.mqtt_start()
-    time.sleep(120)
+    time.sleep(3600)
     rs.mqtt_stop()

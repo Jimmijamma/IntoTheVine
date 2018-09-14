@@ -111,5 +111,5 @@ if __name__ == '__main__':
     
     ml = ITV_MachineLearning()
     ml.mqtt_start()
-    time.sleep(120)
+    time.sleep(3600)
     ml.mqtt_stop()

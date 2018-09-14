@@ -229,6 +229,6 @@ if __name__ == '__main__':
     
     bot=ITV_TelegramBot()
     bot.startup()
-    time.sleep(120)
+    time.sleep(3600)
     bot.mqtt_stop()
 
