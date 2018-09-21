@@ -13,7 +13,7 @@ Promotional video: https://youtu.be/eJb6gKOUAmk
 
 Demo video: https://youtu.be/ngY3vXXHPUA
 
-Project PresentatioN: https://github.com/Jimmijamma/IntoTheVine/blob/master/IntoTheVine_presentation_compressed.pdf
+Project Presentation: https://github.com/Jimmijamma/IntoTheVine/blob/master/IntoTheVine_presentation_compressed.pdf
 
 
 
